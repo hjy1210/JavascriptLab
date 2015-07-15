@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<title>Overlay YouTube film</title>
+<title>中央極限定裡實驗體驗</title>
 <meta charset="UTF-8">
 <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//ajax.aspnetcdn.com/ajax/jQuery/jquery-1.11.0.min.js"></script>
@@ -17,11 +17,24 @@
   font: 10px sans-serif;
   text-anchor: end;
 }
+.axis path,
+.axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
 
-
+.axis text {
+    fill:black;
+    font-family: sans-serif;
+    font-size: 14px;
+}
+.draggable{
+    cursor:move;
+}
 </style>
 <script src="http://d3js.org/d3.v3.min.js"></script>
-
+<script src="//cdn.jsdelivr.net/jstat/1.3.0/jstat.min.js"></script>
 
 </head>
 <body>
@@ -31,11 +44,13 @@
     </p>
     <p>
         <label >抽樣樣本數</label>
-        <input type="text" id="samplesize" value="10">
+        <input type="text" id="samplesize" min="1" max="10000" step=1 value="100">
         <label >實驗次數</label>
-        <input type="text" id="replication" value="300">
+        <input type="text" id="replication" min="1" max="10000" value="1000">
         <label >長條數目</label>
-        <input type="text" id="noOfPartition" value="10">
+        <input type="text" id="noOfPartition" min="1" max="10000" value="25">
+        <!--<input type="range" id='drag' min="1" max="10000" value="10" onmousemove="d3.select('#test').html(d3.select('#drag').node().value);">
+        <label id='test'></label> -->
     </p>
     <p><button onclick="histo()">模擬</button></p>
     <p>
@@ -55,22 +70,22 @@
 
     </p>
     <p>
-        <label>區間下限:</label>
-        <input type="text" id="lowerlimit"></input>
         <label>區間上限:</label>
         <input type="text" id="upperlimit"></input>
-        <button type="button">計算</button>
         <label>近似機率:</label>
         <label id="aproxprob"></label>
         <label>實際頻率:</label>
         <label id="frequency"></label>
     </p>
 <script>
-    function sampleFromArrayWithReplacement(arr, size, replication) {
+    var values,x;
+    var arr,n,replication,size,mu,sigma,samplemu,samplesigma,left,right;
+    var xScale,yScale,sScale,xinverse;
+    function sampleMeanWithReplacement(arr, size, replication) {
         var buf = [];
         for (var j = 0; j < replication; j++) {
             var sum = 0;
-            for (i = 0; i < size; i++) {
+            for (var i = 0; i < size; i++) {
                 var ind = Math.floor(Math.random() * arr.length);
                 sum = sum + arr[ind];
             }
@@ -78,68 +93,144 @@
         }
         return buf;
     }
-    function count(data, noOfPartition) {
-        var min = data[0];
-        var max = data[0];
-        for (var i = 0; i < data.length; i++) {
-            if (data[i] < min) min = data[i];
-            if (data[i] > max) max = data[i];
-        }
-        max = min + (max - min) * 1.001;
-        var step = (max - min) / noOfPartition;
-        var res = [];
-        for (i = 0; i < noOfPartition; i++) {
+    function countFrequency(data,left,right,bins){
+        var res=[];
+        for (var i = 0; i < bins; i++) {
             res.push(0);
         }
-        for (i = 0; i < data.length; i++) {
-            var ind = Math.floor((data[i] - min) / step);
+        var step=(right-left)/bins;
+        for (var i = 0; i < data.length; i++) {
+            var ind = Math.ceil((data[i] - left) / step);
+            if (ind>=bins) ind=bins;
+            if (ind==0) ind=1;
+            ind=ind-1;
             res[ind] = res[ind] + 1;
         }
         return res;
     }
+    function standard(x,mu,sigma){
+        return (x-mu)/sigma;
+    }
+    function dragmove(){
+        alert("Ha");
+    }
+    function relativefrequency(x){
+        var c=0;
+        for (var i=0;i<values.length;i++){
+            if (values[i]<=x)
+                c=c+1;
+            else
+                break;
+        }
+        return c/values.length;
+    }
     function histo() {
         // Generate a Bates distribution of 10 random variables.
         //var arr = d3.select('#population').attr('value').split(',');
-        var arr = document.getElementById('population').value.split(',');
+        arr = d3.select('#population').node().value.split(',');
         for (i = 0; i < arr.length; i++) arr[i] = parseFloat(arr[i]);
         //var n = parseInt(d3.select('#noOfPartition').attr('value'));
-        var n = parseInt(document.getElementById('noOfPartition').value);
+        n = parseInt(d3.select('#noOfPartition').node().value);
         //var replication = parseInt(d3.select('#replication').attr('value'));
-        var replication = parseInt(document.getElementById('replication').value);
+        replication = parseInt(d3.select('#replication').node().value);
         //var size = parseInt(d3.select('#samplesize').attr('value'));
-        var size = parseInt(document.getElementById('samplesize').value);
-        var values = sampleFromArrayWithReplacement(arr, size, replication);
-        var data = count(values, n);
-        var width = 960,
-        height = 500;
-
-        var y = d3.scale.linear()
-        .range([height, 0]);
-
+        size = parseInt(d3.select('#samplesize').node().value);
+        values = sampleMeanWithReplacement(arr, size, replication);
+        values=values.sort();
+        left=d3.min(arr);
+        right=d3.max(arr);
+        var data = countFrequency(values,left,right,n);
+        mu=d3.mean(arr);
+        sigma=d3.deviation(arr)*Math.sqrt((arr.length-1)/arr.length);
+        samplemu=mu;
+        samplesigma=sigma/Math.sqrt(size);
+        d3.select('#mu').text(''+mu.toPrecision(4));
+        d3.select('#sigma').text(''+sigma.toPrecision(4));
+        d3.select('#samplemu').text(''+samplemu.toPrecision(4));
+        d3.select('#samplesigma').text(''+samplesigma.toPrecision(4));
+        var width = 960, height = 500;
+        var padding=50;
+        var maxy=d3.max(data, function (d) { return d; });
+        var miny=d3.min(data, function (d) { return d; });
+        yScale = d3.scale.linear()
+                    .domain([0,maxy])
+                    .range([height-padding, padding]);
+        xScale=d3.scale.linear()
+            .domain([left,right])
+            .range([padding,width-padding]);
+        xinverse=d3.scale.linear()
+            .range([left,right])
+            .domain([padding,width-padding]);
+        sScale=d3.scale.linear()
+            .domain([standard(left,samplemu,samplesigma),
+                standard(right,samplemu,samplesigma)])
+            .range([padding,width-padding]);
         var chart = d3.select(".chart")
-        .attr("width", width)
-        .attr("height", height);
+                .attr("width", width)
+                .attr("height", height);
 
         chart.selectAll("g").remove();
-        y.domain([d3.min(data, function (d) { return d; }), d3.max(data, function (d) { return d; })]);
 
-        var barWidth = width / data.length;
-
+        var barWidth = (width-2*padding) / data.length;
+        if (barWidth<1.5) barWidth=1.5;
+        var step=(right-left)/data.length;
         var bar = chart.selectAll("g")
           .data(data)
-        .enter().append("g")
-          .attr("transform", function (d, i) { return "translate(" + i * barWidth + ",0)"; });
+          .enter().append("g")
+          .attr("transform", function (d, i) { return "translate(" +
+            xScale(left+i*step) + ",0)"; });
 
         bar.append("rect")
-          .attr("y", function (d) { return y(d); })
-          .attr("height", function (d) { return height - y(d); })
+          .attr("y", function (d) { return yScale(d); })
+          .attr("height", function (d) { return height-padding - yScale(d); })
           .attr("width", barWidth - 1);
 
-        bar.append("text")
-          .attr("x", barWidth / 2)
-          .attr("y", function (d) { return y(d) + 3; })
-          .attr("dy", ".75em")
-          .text(function (d) { return d; });
+        //bar.append("text")
+        //  .attr("x", barWidth / 2)
+        //.attr("y", function (d) { return yScale(d) + 3; })
+        //.attr("dy", ".75em")
+        //.text(function (d) { return d; });
+        var xAxis=d3.svg.axis()
+            .scale(xScale)
+            .orient('bottom');
+        chart.append('g')
+            .attr("class","axis")
+            .attr('transform','translate('+0+','+(height-padding)+')')
+            .call(xAxis);
+        var yAxis=d3.svg.axis()
+            .scale(yScale).orient('left');
+        chart.append('g')
+            .attr("class","axis")
+            .attr('transform','translate('+xScale(left)+','+(0)+')')
+            .call(yAxis);
+        var sAxis=d3.svg.axis()
+            .scale(sScale)
+            .orient('top');
+        chart.append('g')
+            .attr("class","axis")
+            .attr('transform','translate('+0+','+(padding)+')')
+            .call(sAxis);
+        var drag=d3.behavior.drag()
+                            .on('drag',function(d,i){
+                               d3.select(this).attr('cx',d3.event.x);
+                               line.attr('x1',d3.event.x)
+                                   .attr('x2',d3.event.x);
+                               x=xinverse(d3.event.x);
+                               d3.select('#upperlimit').node()
+                                 .value=x;
+                               d3.select('#aproxprob').text(jStat.normal.cdf(standard(x,samplemu,samplesigma),0,1).toPrecision(4));
+                               d3.select('#frequency').text(relativefrequency(x).toPrecision(4));
+                            });
+        var cut=chart.append('g')
+        cut.append('circle').attr('cx',sScale(0)).attr('cy',padding-5)
+                            .attr('r','5').attr('fill','red')
+                            .attr('opacity','0.8')
+                            .attr('class','draggable')
+                            .call(drag);
+        var line=cut.append('line').attr('x1',sScale(0)).attr('y1',padding)
+                            .attr('x2',sScale(0))
+                            .attr('y2',height-padding)
+                            .attr('stroke','red');
     }
 </script>        
 </body>
