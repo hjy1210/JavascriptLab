@@ -9,7 +9,7 @@
 <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 <style>
 .chart rect {
-  fill: steelblue;
+  fill: lightblue;
 }
 
 .chart text {
@@ -76,11 +76,14 @@
         <label id="aproxprob"></label>
         <label>實際頻率:</label>
         <label id="frequency"></label>
+        <label>實際頻率-近似機率:</label>
+        <label id="diff"></label>
     </p>
 <script>
     var values,x;
+    var cuts=500;
     var arr,n,replication,size,mu,sigma,samplemu,samplesigma,left,right;
-    var xScale,yScale,sScale,xinverse;
+    var xScale,yScale,sScale,xinverse,pScale;
     function sampleMeanWithReplacement(arr, size, replication) {
         var buf = [];
         for (var j = 0; j < replication; j++) {
@@ -96,7 +99,7 @@
     function countFrequency(data,left,right,bins){
         var res=[];
         for (var i = 0; i < bins; i++) {
-            res.push(0);
+            res.push({member:[]});
         }
         var step=(right-left)/bins;
         for (var i = 0; i < data.length; i++) {
@@ -104,7 +107,10 @@
             if (ind>=bins) ind=bins;
             if (ind==0) ind=1;
             ind=ind-1;
-            res[ind] = res[ind] + 1;
+            res[ind].member.push(data[i]);
+        }
+        for (var i = 0; i < bins; i++) {
+            res[i].tips=res[i].member.toString();
         }
         return res;
     }
@@ -124,6 +130,19 @@
         }
         return c/values.length;
     }
+    function showdiff(x){
+      d3.select('#upperlimit').node()
+        .value=x;
+      d3.select('#aproxprob').text(jStat.normal.cdf(standard(x,samplemu,samplesigma),0,1).toPrecision(4));
+      d3.select('#frequency').text(relativefrequency(x).toPrecision(4));
+      var diff=(d3.select('#frequency').text()-
+           d3.select('#aproxprob').text()).toPrecision(4);
+      d3.select('#diff').text(diff);
+      if (diff>0) 
+        d3.select('#diff').style('color','blue');
+      else
+        d3.select('#diff').style('color','green');
+    }
     function histo() {
         // Generate a Bates distribution of 10 random variables.
         //var arr = d3.select('#population').attr('value').split(',');
@@ -136,7 +155,7 @@
         //var size = parseInt(d3.select('#samplesize').attr('value'));
         size = parseInt(d3.select('#samplesize').node().value);
         values = sampleMeanWithReplacement(arr, size, replication);
-        values=values.sort();
+        values=values.sort(function(a,b){return a-b;});
         left=d3.min(arr);
         right=d3.max(arr);
         var data = countFrequency(values,left,right,n);
@@ -150,10 +169,13 @@
         d3.select('#samplesigma').text(''+samplesigma.toPrecision(4));
         var width = 960, height = 500;
         var padding=50;
-        var maxy=d3.max(data, function (d) { return d; });
-        var miny=d3.min(data, function (d) { return d; });
+        var maxy=d3.max(data, function (d) { return d.member.length; });
+        var miny=d3.min(data, function (d) { return d.member.length; });
         yScale = d3.scale.linear()
                     .domain([0,maxy])
+                    .range([height-padding, padding]);
+        pScale = d3.scale.linear()
+                    .domain([0,1])
                     .range([height-padding, padding]);
         xScale=d3.scale.linear()
             .domain([left,right])
@@ -181,9 +203,11 @@
             xScale(left+i*step) + ",0)"; });
 
         bar.append("rect")
-          .attr("y", function (d) { return yScale(d); })
-          .attr("height", function (d) { return height-padding - yScale(d); })
-          .attr("width", barWidth - 1);
+          .attr("y", function (d) { return yScale(d.member.length); })
+          .attr("height", function (d) { return height-padding - yScale(d.member.length); })
+          .attr("width", barWidth - 1)
+          .append('svg:title')
+          .text(function(d){return d.tips;});
 
         //bar.append("text")
         //  .attr("x", barWidth / 2)
@@ -198,11 +222,17 @@
             .attr('transform','translate('+0+','+(height-padding)+')')
             .call(xAxis);
         var yAxis=d3.svg.axis()
-            .scale(yScale).orient('left');
+            .scale(yScale).orient('right');
+        chart.append('g')
+            .attr("class","axis")
+            .attr('transform','translate('+xScale(right)+','+(0)+')')
+            .call(yAxis);
+        var pAxis=d3.svg.axis()
+            .scale(pScale).orient('left');
         chart.append('g')
             .attr("class","axis")
             .attr('transform','translate('+xScale(left)+','+(0)+')')
-            .call(yAxis);
+            .call(pAxis);
         var sAxis=d3.svg.axis()
             .scale(sScale)
             .orient('top');
@@ -210,16 +240,45 @@
             .attr("class","axis")
             .attr('transform','translate('+0+','+(padding)+')')
             .call(sAxis);
+        var standardpoints="";
+        var experimentpoints="";
+        var step1=(width-2*padding)/300;
+        for ( var i=0;i<=300;i++){
+            var x0=padding+i*step1;
+            var s0=standard(xinverse(x0),samplemu,samplesigma);
+            standardpoints=standardpoints+x0+' '+pScale(jStat.normal.cdf(s0,0,1));
+            if (i<300) {
+                standardpoints=standardpoints+',';
+            }
+        }
+        var startvalue=values[0];
+        experimentpoints=experimentpoints+xScale(startvalue)+' '+pScale(relativefrequency(startvalue))+' '; 
+        for ( var i=1;i<values.length;i++){
+            var x0=values[i];
+            if (x0<=startvalue) continue;
+            experimentpoints=experimentpoints+xScale(x0)+' '+pScale(relativefrequency(startvalue))+' '; 
+            startvalue=x0;
+            experimentpoints=experimentpoints+xScale(startvalue)+' '+pScale(relativefrequency(startvalue))+' ';
+        }
+
+        chart.append('g').append('polyline').style('fill','none')
+             .style('stroke','green').style('stroke-width',2)
+             .attr('id',"standardcdf").style('opacity','0.7')
+             .attr('points',standardpoints);
+        chart.append('g').append('polyline').style('fill','none')
+             .style('stroke','blue').style('stroke-width',2)
+             .attr('id',"experimentcdf").style('opacity','0.7')
+             .attr('points',experimentpoints);
         var drag=d3.behavior.drag()
                             .on('drag',function(d,i){
+                               if (d3.event.x<padding) d3.event.x=padding;
+                               if (d3.event.x>width-padding) 
+                                  d3.event.x=width-padding;
                                d3.select(this).attr('cx',d3.event.x);
                                line.attr('x1',d3.event.x)
                                    .attr('x2',d3.event.x);
                                x=xinverse(d3.event.x);
-                               d3.select('#upperlimit').node()
-                                 .value=x;
-                               d3.select('#aproxprob').text(jStat.normal.cdf(standard(x,samplemu,samplesigma),0,1).toPrecision(4));
-                               d3.select('#frequency').text(relativefrequency(x).toPrecision(4));
+                               showdiff(x);
                             });
         var cut=chart.append('g')
         cut.append('circle').attr('cx',sScale(0)).attr('cy',padding-5)
@@ -231,6 +290,7 @@
                             .attr('x2',sScale(0))
                             .attr('y2',height-padding)
                             .attr('stroke','red');
+        showdiff(samplemu);
     }
 </script>        
 </body>
