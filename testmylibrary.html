@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title></title>
+        <!-- <script>var Library=0;</script>  will cause error if uncomment this -->
+        <script src="scripts/mylibrary.js"></script>
+    </head>
+    <body>
+        <input type="text" id="firstname" size="10">
+        <button onclick="Library.setName(document.getElementById('firstname').value);document.getElementById('demo').innerHTML =Library.greet();">click</button>
+        <p id="demo"></p>
+        <script>document.getElementById('demo').innerHTML = Library.greet();</script>
+    </body>
+</html>
