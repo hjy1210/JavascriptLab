@@ -40,44 +40,41 @@
 <body>
     <p>
         <label >母體元素</label>
-        <input type="text" id="population" value="2,4,6,8,10"></input>
+        <input type="text" id="population" value="2,4,6,8,10,30" size="80"></input>
     </p>
     <p>
         <label >抽樣樣本數</label>
-        <input type="text" id="samplesize" min="1" max="10000" step=1 value="100">
+        <input type="text" size="5" id="samplesize" min="1" max="10000" step=1 value="10">
         <label >實驗次數</label>
-        <input type="text" id="replication" min="1" max="10000" value="1000">
-        <label >長條數目</label>
-        <input type="text" id="noOfPartition" min="1" max="10000" value="25">
+        <input type="text" size="5" id="replication" min="1" max="10000" value="1000">
+        <label >組數</label>
+        <input type="text" size="5" id="noOfPartition" min="1" max="10000" value="25">
         <!--<input type="range" id='drag' min="1" max="10000" value="10" onmousemove="d3.select('#test').html(d3.select('#drag').node().value);">
         <label id='test'></label> -->
+        <button onclick="histo()">模擬</button>
+        <input type='radio' name='plottype' value='cdf' checked='true' onchange='togglecdf()'>累積相對次數分配
+        <input type='radio' name='plottype' value='pdf' onchange='togglecdf()'>次數分配
     </p>
-    <p><button onclick="histo()">模擬</button></p>
     <p>
         <label>母體\(\mu:\)</label>
-        <label id="mu"></label>
-        <label>母體\(\sigma:\)</label>
-        <label id="sigma"></label>
-    </p>
-    <p>
-        <label>樣本平均的期望值:</label>
-        <label id="samplemu"></label>
-        <label>樣本平均的標準差:</label>
-        <label id="samplesigma"></label>
+        <label id="mu">未算</label>
+        <label>, 母體\(\sigma:\)</label>
+        <label id="sigma">未算</label>
+        <label>, 樣本平均的期望值:</label>
+        <label id="samplemu">未算</label>
+        <label>, 樣本平均的標準差:</label>
+        <label id="samplesigma">未算</label><br>
+        <label>上限:</label>
+        <label id="upperlimit">未算</label>
+        <label>, 近似機率:</label>
+        <label id="aproxprob">未算</label>
+        <label>, 實際頻率:</label>
+        <label id="frequency">未算</label>
+        <label>, 實際頻率-近似機率:</label>
+        <label id="diff">未算</label>
     </p>
     <p id="histogram">
     <svg class="chart"></svg>
-
-    </p>
-    <p>
-        <label>區間上限:</label>
-        <input type="text" id="upperlimit"></input>
-        <label>近似機率:</label>
-        <label id="aproxprob"></label>
-        <label>實際頻率:</label>
-        <label id="frequency"></label>
-        <label>實際頻率-近似機率:</label>
-        <label id="diff"></label>
     </p>
 <script>
     var values,x;
@@ -117,9 +114,6 @@
     function standard(x,mu,sigma){
         return (x-mu)/sigma;
     }
-    function dragmove(){
-        alert("Ha");
-    }
     function relativefrequency(x){
         var c=0;
         for (var i=0;i<values.length;i++){
@@ -131,8 +125,7 @@
         return c/values.length;
     }
     function showdiff(x){
-      d3.select('#upperlimit').node()
-        .value=x;
+      d3.select('#upperlimit').text(x.toPrecision(4));
       d3.select('#aproxprob').text(jStat.normal.cdf(standard(x,samplemu,samplesigma),0,1).toPrecision(4));
       d3.select('#frequency').text(relativefrequency(x).toPrecision(4));
       var diff=(d3.select('#frequency').text()-
@@ -156,8 +149,10 @@
         size = parseInt(d3.select('#samplesize').node().value);
         values = sampleMeanWithReplacement(arr, size, replication);
         values=values.sort(function(a,b){return a-b;});
-        left=d3.min(arr);
-        right=d3.max(arr);
+        //left=d3.min(arr);
+        //right=d3.max(arr);
+        left=d3.min(values);
+        right=d3.max(values);
         var data = countFrequency(values,left,right,n);
         mu=d3.mean(arr);
         sigma=d3.deviation(arr)*Math.sqrt((arr.length-1)/arr.length);
@@ -168,11 +163,12 @@
         d3.select('#samplemu').text(''+samplemu.toPrecision(4));
         d3.select('#samplesigma').text(''+samplesigma.toPrecision(4));
         var width = 960, height = 500;
-        var padding=50;
+        var padding=70;
         var maxy=d3.max(data, function (d) { return d.member.length; });
         var miny=d3.min(data, function (d) { return d.member.length; });
         yScale = d3.scale.linear()
-                    .domain([0,maxy])
+                    //.domain([0,maxy])
+                    .domain([0,1])
                     .range([height-padding, padding]);
         pScale = d3.scale.linear()
                     .domain([0,1])
@@ -194,26 +190,54 @@
         chart.selectAll("g").remove();
 
         var barWidth = (width-2*padding) / data.length;
-        if (barWidth<1.5) barWidth=1.5;
+        if (barWidth<0.5) barWidth=0.5;
         var step=(right-left)/data.length;
         var bar = chart.selectAll("g")
           .data(data)
           .enter().append("g")
           .attr("transform", function (d, i) { return "translate(" +
             xScale(left+i*step) + ",0)"; });
-
-        bar.append("rect")
-          .attr("y", function (d) { return yScale(d.member.length); })
-          .attr("height", function (d) { return height-padding - yScale(d.member.length); })
-          .attr("width", barWidth - 1)
+        //var bwinsd=(d3.max(arr)-d3.min(arr))/n/samplesigma;
+        var bwinsd=(right-left)/n/samplesigma;
+        bar.append("rect").attr('class','pdf')
+          .style('visibility',
+            d3.select('input[name="plottype"]:checked').node().value=='pdf'?'visible':'hidden')
+          //.attr("y", function (d) { return yScale(d.member.length); })
+          .attr("y", function (d) { 
+              return yScale(d.member.length/values.length/bwinsd); 
+            })
+          .attr("height", function (d) { return height-padding - 
+              yScale(d.member.length/values.length/bwinsd); })
+          .attr("width", barWidth)
           .append('svg:title')
           .text(function(d){return d.tips;});
 
-        //bar.append("text")
-        //  .attr("x", barWidth / 2)
-        //.attr("y", function (d) { return yScale(d) + 3; })
-        //.attr("dy", ".75em")
-        //.text(function (d) { return d; });
+        var pdfpoints="";
+        var step2=(width-2*padding)/300;
+        var multiplier=1/Math.sqrt(2*Math.PI);
+        for ( var i=0;i<=300;i++){
+            var x0=padding+i*step2;
+            var s0=standard(xinverse(x0),samplemu,samplesigma);
+            //pdfpoints=pdfpoints+x0+' '+
+            //  (yScale(jStat.normal.pdf(s0,0,1)*maxy/multiplier));
+            pdfpoints=pdfpoints+x0+' '+
+              (yScale(jStat.normal.pdf(s0,0,1)));
+            if (i<300) {
+                pdfpoints=pdfpoints+',';
+            }
+        }
+        chart.append('g').append('polyline').style('fill','none')
+             .style('stroke','green').style('stroke-width',2).attr('class','pdf')
+             .style('visibility',
+               d3.select('input[name="plottype"]:checked').node().value=='pdf'?'visible':'hidden')
+             .attr('id',"standardpdf").style('opacity','0.7')
+             .attr('points',pdfpoints);
+
+        chart.append('g').append("text")
+            .attr("text-anchor","middle")
+            .attr("x",width/2).attr("y",height-25)
+            .style('fill','black').style('font-size','14px')
+            .text("量尺：母體原始資料");
         var xAxis=d3.svg.axis()
             .scale(xScale)
             .orient('bottom');
@@ -221,18 +245,26 @@
             .attr("class","axis")
             .attr('transform','translate('+0+','+(height-padding)+')')
             .call(xAxis);
-        var yAxis=d3.svg.axis()
-            .scale(yScale).orient('right');
-        chart.append('g')
-            .attr("class","axis")
-            .attr('transform','translate('+xScale(right)+','+(0)+')')
-            .call(yAxis);
+
+        chart.append('g').append("text")
+            .attr("text-anchor","start")
+            .attr("x",30).attr("y",height/2).attr('dy','.75em')
+            //.attr("x",0).attr(y,6).attr('transform','rotate(-90)')
+            //.attr('transform','translate(30,'+(height/2)+')')
+            .style('fill','black').style('font-size','14px')
+            .text("機率");
+
         var pAxis=d3.svg.axis()
             .scale(pScale).orient('left');
         chart.append('g')
             .attr("class","axis")
             .attr('transform','translate('+xScale(left)+','+(0)+')')
             .call(pAxis);
+        chart.append('g').append("text")
+            .attr("text-anchor","middle")
+            .attr("x",width/2).attr("y",40)
+            .style('fill','black').style('font-size','14px')
+            .html("量尺：樣本平均標準差為單位");
         var sAxis=d3.svg.axis()
             .scale(sScale)
             .orient('top');
@@ -252,6 +284,7 @@
             }
         }
         var startvalue=values[0];
+        experimentpoints=experimentpoints+xScale(startvalue)+' '+pScale(0)+' '; 
         experimentpoints=experimentpoints+xScale(startvalue)+' '+pScale(relativefrequency(startvalue))+' '; 
         for ( var i=1;i<values.length;i++){
             var x0=values[i];
@@ -262,11 +295,15 @@
         }
 
         chart.append('g').append('polyline').style('fill','none')
-             .style('stroke','green').style('stroke-width',2)
+             .style('stroke','green').style('stroke-width',2).attr('class','cdf')
+             .style('visibility',
+               d3.select('input[name="plottype"]:checked').node().value=='cdf'?'visible':'hidden')
              .attr('id',"standardcdf").style('opacity','0.7')
              .attr('points',standardpoints);
         chart.append('g').append('polyline').style('fill','none')
-             .style('stroke','blue').style('stroke-width',2)
+             .style('stroke','blue').style('stroke-width',2).attr('class','cdf')
+             .style('visibility',
+               d3.select('input[name="plottype"]:checked').node().value=='cdf'?'visible':'hidden')
              .attr('id',"experimentcdf").style('opacity','0.7')
              .attr('points',experimentpoints);
         var drag=d3.behavior.drag()
@@ -281,8 +318,8 @@
                                showdiff(x);
                             });
         var cut=chart.append('g')
-        cut.append('circle').attr('cx',sScale(0)).attr('cy',padding-5)
-                            .attr('r','5').attr('fill','red')
+        cut.append('circle').attr('cx',sScale(0)).attr('cy',padding-8)
+                            .attr('r','8').attr('fill','red')
                             .attr('opacity','0.8')
                             .attr('class','draggable')
                             .call(drag);
@@ -291,6 +328,23 @@
                             .attr('y2',height-padding)
                             .attr('stroke','red');
         showdiff(samplemu);
+    }
+    function togglecdf(){
+      if (d3.select('input[name="plottype"]:checked').node().value=='cdf'){
+          d3.selectAll('.cdf').each(function(d,i){
+            d3.select(this).style('visibility','visible');
+          })
+          d3.selectAll('.pdf').each(function(d,i){
+            d3.select(this).style('visibility','hidden');
+          })
+      } else {
+          d3.selectAll('.cdf').each(function(d,i){
+            d3.select(this).style('visibility','hidden');
+          })
+          d3.selectAll('.pdf').each(function(d,i){
+            d3.select(this).style('visibility','visible');
+          })
+      }
     }
 </script>        
 </body>
