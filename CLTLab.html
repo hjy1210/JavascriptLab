@@ -211,6 +211,26 @@
           .attr("width", barWidth)
           .append('svg:title')
           .text(function(d){return d.tips;});
+        chart.append('g').append("text")
+            .attr("text-anchor","start").attr('class','pdf')
+            .attr("x",0).attr("y",0).attr('transform','matrix(0,-1,1,0,'+(width-20)+','+height/2+')')
+            .style('visibility',
+              d3.select('input[name="plottype"]:checked').node().value=='pdf'?'visible':'hidden')
+            //.attr("x",0).attr(y,6).attr('transform','rotate(-90)')
+            //.attr('transform','translate(30,'+(height/2)+')')
+            .style('fill','black').style('font-size','14px')
+            .text("次數");
+        var fScale= d3.scale.linear()
+                    .domain([0,bwinsd*values.length])
+                    .range([height-padding, padding]);
+        var fAxis=d3.svg.axis()
+            .scale(fScale).orient('right');
+        chart.append('g')
+            .attr("class","axis pdf")
+            .style('visibility',
+              d3.select('input[name="plottype"]:checked').node().value=='pdf'?'visible':'hidden')
+            .attr('transform','translate('+xScale(right)+','+(0)+')')
+            .call(fAxis);
 
         var pdfpoints="";
         var step2=(width-2*padding)/300;
@@ -247,8 +267,10 @@
             .call(xAxis);
 
         chart.append('g').append("text")
-            .attr("text-anchor","start")
-            .attr("x",30).attr("y",height/2).attr('dy','.75em')
+            .attr("text-anchor","start").attr('class','cdf')
+            .attr("x",0).attr("y",0).attr('transform','matrix(0,-1,1,0,20,'+height/2+')')
+            .style('visibility',
+              d3.select('input[name="plottype"]:checked').node().value=='cdf'?'visible':'hidden')
             //.attr("x",0).attr(y,6).attr('transform','rotate(-90)')
             //.attr('transform','translate(30,'+(height/2)+')')
             .style('fill','black').style('font-size','14px')
@@ -257,9 +279,12 @@
         var pAxis=d3.svg.axis()
             .scale(pScale).orient('left');
         chart.append('g')
-            .attr("class","axis")
+            .attr("class","axis cdf")
+            .style('visibility',
+              d3.select('input[name="plottype"]:checked').node().value=='cdf'?'visible':'hidden')
             .attr('transform','translate('+xScale(left)+','+(0)+')')
             .call(pAxis);
+
         chart.append('g').append("text")
             .attr("text-anchor","middle")
             .attr("x",width/2).attr("y",40)

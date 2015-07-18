@@ -8,6 +8,14 @@
         <script src="scripts/mylibrary.js"></script>
     </head>
     <body>
+        <div>
+            <svg height="160" width="200">
+            <text x="0" y="0" fill="red" transform="matrix(0 -1 1 0 3 50)">機率</text>
+            <circle cx="0" cy="0" r="5" fill="red" transform="matrix(0 -1 1 0 3 50)"></circle>
+            <text x="0" y="50" fill="blue">機率</text>
+            <circle cx="0" cy="50" r="3" fill="blue" opacity="50"></circle>
+            </svg>
+        </div>
         <input type="text" id="firstname" size="10">
         <button onclick="Library.setName(document.getElementById('firstname').value);document.getElementById('demo').innerHTML =Library.greet();">click</button>
         <p id="demo"></p>
