@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title></title>
+        <!-- <script>var Library=0;</script>  will cause error if uncomment this -->
+        <script src="http://d3js.org/d3.v3.min.js"></script>
+        <script src="scripts/st.js"></script>
+        <script>
+            function mysample(samplesize,replication){
+                var pairs=d3.select('#buffer').node().value.split(',');
+                var population=[];
+                for (var i=0;i<pairs.length;i++){
+                    var temp=pairs[i].split(' ').filter(Boolean);
+                    if (temp.length>=2)
+                       population.push({v:temp[0],p:parseFloat(temp[1])});
+                    else
+                       population.push({v:temp[0],p:1}); 
+                }
+                var values=[]
+                for (var i=0;i<replication;i++){
+                    values.push(d3.mean(st.sample(population,samplesize)));
+                }
+                var res=st.valueCount(values);
+                var s="";
+                for (var i=0;i<res.length;i++) s=s+res[i].value+"("+res[i].count+")";
+                return s;
+            }
+        </script>
+    </head>
+    <body>
+        <div>
+            <svg height="160" width="200">
+            <text x="0" y="0" fill="red" transform="matrix(0 -1 1 0 3 50)">機率</text>
+            <circle cx="0" cy="0" r="5" fill="red" transform="matrix(0 -1 1 0 3 50)"></circle>
+            <text x="0" y="50" fill="blue">機率\(\mu\)</text>
+            <circle cx="0" cy="50" r="3" fill="blue" opacity="50"></circle>
+            </svg>
+        </div>
+        <input type="text" id="buffer" value="1 1,2 2,3 3,4 4" size="10">
+        <button onclick="d3.select('#demo').html(mysample(10,20));">click</button>
+        <p id="demo"></p>
+    </body>
+</html>

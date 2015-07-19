@@ -35,6 +35,7 @@
 </style>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="//cdn.jsdelivr.net/jstat/1.3.0/jstat.min.js"></script>
+<script src="scripts/st.js"></script>
 
 </head>
 <body>
@@ -56,13 +57,13 @@
         <input type='radio' name='plottype' value='pdf' onchange='togglecdf()'>次數分配
     </p>
     <p>
-        <label>母體\(\mu:\)</label>
+        <label>母體期望值\(\mu:\)</label>
         <label id="mu">未算</label>
-        <label>, 母體\(\sigma:\)</label>
+        <label>, 母體標準差\(\sigma:\)</label>
         <label id="sigma">未算</label>
-        <label>, 樣本平均的期望值:</label>
+        <label>, 樣本平均的期望值\(\mu:\)</label>
         <label id="samplemu">未算</label>
-        <label>, 樣本平均的標準差:</label>
+        <label>, 樣本平均的標準差\(\frac{\sigma}{\sqrt{n}}:\)</label>
         <label id="samplesigma">未算</label><br>
         <label>上限:</label>
         <label id="upperlimit">未算</label>
@@ -78,39 +79,8 @@
     </p>
 <script>
     var values,x;
-    var cuts=500;
     var arr,n,replication,size,mu,sigma,samplemu,samplesigma,left,right;
-    var xScale,yScale,sScale,xinverse,pScale;
-    function sampleMeanWithReplacement(arr, size, replication) {
-        var buf = [];
-        for (var j = 0; j < replication; j++) {
-            var sum = 0;
-            for (var i = 0; i < size; i++) {
-                var ind = Math.floor(Math.random() * arr.length);
-                sum = sum + arr[ind];
-            }
-            buf.push(sum / size);
-        }
-        return buf;
-    }
-    function countFrequency(data,left,right,bins){
-        var res=[];
-        for (var i = 0; i < bins; i++) {
-            res.push({member:[]});
-        }
-        var step=(right-left)/bins;
-        for (var i = 0; i < data.length; i++) {
-            var ind = Math.ceil((data[i] - left) / step);
-            if (ind>=bins) ind=bins;
-            if (ind==0) ind=1;
-            ind=ind-1;
-            res[ind].member.push(data[i]);
-        }
-        for (var i = 0; i < bins; i++) {
-            res[i].tips=res[i].member.toString();
-        }
-        return res;
-    }
+    var xScale,sScale,xinverse,pScale;
     function standard(x,mu,sigma){
         return (x-mu)/sigma;
     }
@@ -137,59 +107,69 @@
         d3.select('#diff').style('color','green');
     }
     function histo() {
-        // Generate a Bates distribution of 10 random variables.
-        //var arr = d3.select('#population').attr('value').split(',');
-        arr = d3.select('#population').node().value.split(',');
-        for (i = 0; i < arr.length; i++) arr[i] = parseFloat(arr[i]);
-        //var n = parseInt(d3.select('#noOfPartition').attr('value'));
         n = parseInt(d3.select('#noOfPartition').node().value);
-        //var replication = parseInt(d3.select('#replication').attr('value'));
         replication = parseInt(d3.select('#replication').node().value);
-        //var size = parseInt(d3.select('#samplesize').attr('value'));
         size = parseInt(d3.select('#samplesize').node().value);
-        values = sampleMeanWithReplacement(arr, size, replication);
+        // <V1> <W1>,<V2> <W2>,...
+        var pairs=d3.select('#population').node().value.split(',');
+        var population=[];
+        var psum=0;
+        for (var i=0;i<pairs.length;i++){
+            var temp=pairs[i].split(' ').filter(Boolean); // remove ""
+            if (temp.length>=2)
+               population.push({v:temp[0],p:parseFloat(temp[1])});
+            else
+               population.push({v:temp[0],p:1});
+            psum=psum+population[i].p;
+        }
+        for (var i=0;i<population.length;i++) population[i].p/=psum; // normalize
+
+        values=[]
+        for (var i=0;i<replication;i++){
+            values.push(d3.mean(st.sample(population,size)));
+        }
+
         values=values.sort(function(a,b){return a-b;});
-        //left=d3.min(arr);
-        //right=d3.max(arr);
         left=d3.min(values);
         right=d3.max(values);
-        var data = countFrequency(values,left,right,n);
-        mu=d3.mean(arr);
-        sigma=d3.deviation(arr)*Math.sqrt((arr.length-1)/arr.length);
+
+        var vcs=st.valueCount(values);
+        var data=st.countFrequency(vcs,left,right,n);  //[{value:[],count[],total},...]
+        
+        mu=st.mean(population);
+        sigma=st.sd(population);
         samplemu=mu;
         samplesigma=sigma/Math.sqrt(size);
         d3.select('#mu').text(''+mu.toPrecision(4));
         d3.select('#sigma').text(''+sigma.toPrecision(4));
         d3.select('#samplemu').text(''+samplemu.toPrecision(4));
         d3.select('#samplesigma').text(''+samplesigma.toPrecision(4));
-        var width = 960, height = 500;
-        var padding=70;
-        var maxy=d3.max(data, function (d) { return d.member.length; });
-        var miny=d3.min(data, function (d) { return d.member.length; });
-        yScale = d3.scale.linear()
-                    //.domain([0,maxy])
-                    .domain([0,1])
-                    .range([height-padding, padding]);
+
+        var width = 600, height = 300;
+        var mar={left:60,top:60,right:60,bottom:40};
+        var maxy=d3.max(data, function (d) { return d.total; });
+        //var miny=d3.min(data, function (d) { return d.total; });
+
         pScale = d3.scale.linear()
                     .domain([0,1])
-                    .range([height-padding, padding]);
+                    .range([height-mar.bottom, mar.top]);
         xScale=d3.scale.linear()
             .domain([left,right])
-            .range([padding,width-padding]);
+            .range([mar.left,width-mar.right]);
         xinverse=d3.scale.linear()
             .range([left,right])
-            .domain([padding,width-padding]);
+            .domain([mar.left,width-mar.right]);
         sScale=d3.scale.linear()
             .domain([standard(left,samplemu,samplesigma),
                 standard(right,samplemu,samplesigma)])
-            .range([padding,width-padding]);
+            .range([mar.left,width-mar.right]);
         var chart = d3.select(".chart")
                 .attr("width", width)
                 .attr("height", height);
 
-        chart.selectAll("g").remove();
+        chart.selectAll("g").remove(); // clean chart
 
-        var barWidth = (width-2*padding) / data.length;
+        var barWidth = (width-mar.left-mar.right) / data.length;
         if (barWidth<0.5) barWidth=0.5;
         var step=(right-left)/data.length;
         var bar = chart.selectAll("g")
@@ -197,32 +177,32 @@
           .enter().append("g")
           .attr("transform", function (d, i) { return "translate(" +
             xScale(left+i*step) + ",0)"; });
-        //var bwinsd=(d3.max(arr)-d3.min(arr))/n/samplesigma;
+        
+        // bar
         var bwinsd=(right-left)/n/samplesigma;
         bar.append("rect").attr('class','pdf')
           .style('visibility',
             d3.select('input[name="plottype"]:checked').node().value=='pdf'?'visible':'hidden')
-          //.attr("y", function (d) { return yScale(d.member.length); })
           .attr("y", function (d) { 
-              return yScale(d.member.length/values.length/bwinsd); 
+              return pScale(d.total/values.length/bwinsd); 
             })
-          .attr("height", function (d) { return height-padding - 
-              yScale(d.member.length/values.length/bwinsd); })
+          .attr("height", function (d) { return height-mar.bottom - 
+              pScale(d.total/values.length/bwinsd); })
           .attr("width", barWidth)
           .append('svg:title')
           .text(function(d){return d.tips;});
+        // right label
         chart.append('g').append("text")
             .attr("text-anchor","start").attr('class','pdf')
-            .attr("x",0).attr("y",0).attr('transform','matrix(0,-1,1,0,'+(width-20)+','+height/2+')')
+            .attr("x",0).attr("y",0).attr('transform','matrix(0,-1,1,0,'+(width-mar.right-6)+','+height/2+')')
             .style('visibility',
               d3.select('input[name="plottype"]:checked').node().value=='pdf'?'visible':'hidden')
-            //.attr("x",0).attr(y,6).attr('transform','rotate(-90)')
-            //.attr('transform','translate(30,'+(height/2)+')')
             .style('fill','black').style('font-size','14px')
             .text("次數");
+        // right axis
         var fScale= d3.scale.linear()
                     .domain([0,bwinsd*values.length])
-                    .range([height-padding, padding]);
+                    .range([height-mar.bottom, mar.top]);
         var fAxis=d3.svg.axis()
             .scale(fScale).orient('right');
         chart.append('g')
@@ -231,17 +211,15 @@
               d3.select('input[name="plottype"]:checked').node().value=='pdf'?'visible':'hidden')
             .attr('transform','translate('+xScale(right)+','+(0)+')')
             .call(fAxis);
-
+        // limit pdf
         var pdfpoints="";
-        var step2=(width-2*padding)/300;
+        var step2=(width-mar.left-mar.right)/300;
         var multiplier=1/Math.sqrt(2*Math.PI);
         for ( var i=0;i<=300;i++){
-            var x0=padding+i*step2;
+            var x0=mar.left+i*step2;
             var s0=standard(xinverse(x0),samplemu,samplesigma);
-            //pdfpoints=pdfpoints+x0+' '+
-            //  (yScale(jStat.normal.pdf(s0,0,1)*maxy/multiplier));
             pdfpoints=pdfpoints+x0+' '+
-              (yScale(jStat.normal.pdf(s0,0,1)));
+              (pScale(jStat.normal.pdf(s0,0,1)));
             if (i<300) {
                 pdfpoints=pdfpoints+',';
             }
@@ -252,30 +230,29 @@
                d3.select('input[name="plottype"]:checked').node().value=='pdf'?'visible':'hidden')
              .attr('id',"standardpdf").style('opacity','0.7')
              .attr('points',pdfpoints);
-
+        // bottom label
         chart.append('g').append("text")
             .attr("text-anchor","middle")
-            .attr("x",width/2).attr("y",height-25)
+            .attr("x",width/2).attr("y",height-6)
             .style('fill','black').style('font-size','14px')
             .text("量尺：母體原始資料");
+        // bottom axis
         var xAxis=d3.svg.axis()
             .scale(xScale)
             .orient('bottom');
         chart.append('g')
             .attr("class","axis")
-            .attr('transform','translate('+0+','+(height-padding)+')')
+            .attr('transform','translate('+0+','+(height-mar.bottom)+')')
             .call(xAxis);
-
+        // left label
         chart.append('g').append("text")
             .attr("text-anchor","start").attr('class','cdf')
             .attr("x",0).attr("y",0).attr('transform','matrix(0,-1,1,0,20,'+height/2+')')
             .style('visibility',
               d3.select('input[name="plottype"]:checked').node().value=='cdf'?'visible':'hidden')
-            //.attr("x",0).attr(y,6).attr('transform','rotate(-90)')
-            //.attr('transform','translate(30,'+(height/2)+')')
             .style('fill','black').style('font-size','14px')
             .text("機率");
-
+        // left axis
         var pAxis=d3.svg.axis()
             .scale(pScale).orient('left');
         chart.append('g')
@@ -284,24 +261,37 @@
               d3.select('input[name="plottype"]:checked').node().value=='cdf'?'visible':'hidden')
             .attr('transform','translate('+xScale(left)+','+(0)+')')
             .call(pAxis);
-
-        chart.append('g').append("text")
-            .attr("text-anchor","middle")
-            .attr("x",width/2).attr("y",40)
-            .style('fill','black').style('font-size','14px')
-            .html("量尺：樣本平均標準差為單位");
+        // top label
+        //chart.append('g').append("text")
+        //    .attr("text-anchor","middle")
+        //    .attr("x",width/2).attr("y",20).attr('id','upperlabel')
+        //    .style('fill','black').style('font-size','14px')
+        //    .html("量尺：樣本平均標準差為單位");
+        //// http://stackoverflow.com/questions/15962325/mathjax-inside-svg
+        // SVG 裡面要用MathJax，必須放在foreignObject裡，但不好看
+        chart.append('g').append("foreignObject")
+            .attr("x",120).attr("y",0).attr('width','300').attr('height','50')
+            .attr('id','upperlabel')
+            .html("<div xmlns='http://www.w3.org/1999/xhtml' "+
+               "style='font-family:sans-serif; font-size:16px'>"+
+               "\\(\\displaystyle{量尺：樣本平均標準差"+
+               "\\frac{\\sigma}{\\sqrt{n}}為單位}\\)</div>"); //不用displaystyle,根號的底端被切掉
+        var outputBox = d3.select('#upperlabel').node();
+        MathJax.Hub.Queue(["Typeset", MathJax.Hub, outputBox]);
+        // top axis
         var sAxis=d3.svg.axis()
             .scale(sScale)
             .orient('top');
         chart.append('g')
             .attr("class","axis")
-            .attr('transform','translate('+0+','+(padding)+')')
+            .attr('transform','translate('+0+','+(mar.top)+')')
             .call(sAxis);
+        // limit cdf and empirical pdf
         var standardpoints="";
         var experimentpoints="";
-        var step1=(width-2*padding)/300;
+        var step1=(width-mar.left-mar.right)/300;
         for ( var i=0;i<=300;i++){
-            var x0=padding+i*step1;
+            var x0=mar.left+i*step1;
             var s0=standard(xinverse(x0),samplemu,samplesigma);
             standardpoints=standardpoints+x0+' '+pScale(jStat.normal.cdf(s0,0,1));
             if (i<300) {
@@ -318,7 +308,6 @@
             startvalue=x0;
             experimentpoints=experimentpoints+xScale(startvalue)+' '+pScale(relativefrequency(startvalue))+' ';
         }
-
         chart.append('g').append('polyline').style('fill','none')
              .style('stroke','green').style('stroke-width',2).attr('class','cdf')
              .style('visibility',
@@ -331,27 +320,28 @@
                d3.select('input[name="plottype"]:checked').node().value=='cdf'?'visible':'hidden')
              .attr('id',"experimentcdf").style('opacity','0.7')
              .attr('points',experimentpoints);
+        // setup upper limit with drag feature
         var drag=d3.behavior.drag()
-                            .on('drag',function(d,i){
-                               if (d3.event.x<padding) d3.event.x=padding;
-                               if (d3.event.x>width-padding) 
-                                  d3.event.x=width-padding;
-                               d3.select(this).attr('cx',d3.event.x);
-                               line.attr('x1',d3.event.x)
-                                   .attr('x2',d3.event.x);
-                               x=xinverse(d3.event.x);
-                               showdiff(x);
-                            });
+            .on('drag',function(d,i){
+               if (d3.event.x<mar.left) d3.event.x=mar.left;
+               if (d3.event.x>width-mar.rigth) 
+                  d3.event.x=width-mar.rigth;
+               d3.select(this).attr('cx',d3.event.x);
+               line.attr('x1',d3.event.x)
+                   .attr('x2',d3.event.x);
+               x=xinverse(d3.event.x);
+               showdiff(x);
+            });
         var cut=chart.append('g')
-        cut.append('circle').attr('cx',sScale(0)).attr('cy',padding-8)
-                            .attr('r','8').attr('fill','red')
-                            .attr('opacity','0.8')
-                            .attr('class','draggable')
-                            .call(drag);
-        var line=cut.append('line').attr('x1',sScale(0)).attr('y1',padding)
-                            .attr('x2',sScale(0))
-                            .attr('y2',height-padding)
-                            .attr('stroke','red');
+        cut.append('circle').attr('cx',sScale(0)).attr('cy',mar.top-8)
+            .attr('r','8').attr('fill','red')
+            .attr('opacity','0.8')
+            .attr('class','draggable')
+            .call(drag);
+        var line=cut.append('line').attr('x1',sScale(0)).attr('y1',mar.top)
+            .attr('x2',sScale(0))
+            .attr('y2',height-mar.bottom)
+            .attr('stroke','red');
         showdiff(samplemu);
     }
     function togglecdf(){
