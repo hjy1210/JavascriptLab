@@ -70,6 +70,7 @@
         for (var i = 0; i < vcs.length; i++) {
             var ind = Math.ceil((vcs[i].value - left) / step);
             if (ind==0 && vcs[i].value==left) ind=1;  // first bin include left limit
+            if (ind<1 || ind>bins) continue;
             ind=ind-1;
             res[ind].total+=vcs[i].count;
             var count=res[ind].member.length;
