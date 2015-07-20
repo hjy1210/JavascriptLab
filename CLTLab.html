@@ -124,7 +124,7 @@
         }
         for (var i=0;i<population.length;i++) population[i].p/=psum; // normalize
 
-        values=[]
+        values=[];
         for (var i=0;i<replication;i++){
             values.push(d3.mean(st.sample(population,size)));
         }

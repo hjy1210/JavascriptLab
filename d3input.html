@@ -10,12 +10,26 @@
             function getMessage() {
                 //d3.select("#d3").html("D3:"+d3.select("#msg").attr("value"));  // only get default value
                 //d3.select("#d3").html("D3:"+d3.select("#msg").property("value"));  //Work!
-                d3.select("#d3").html("D3::"+d3.select("#msg").node().value);
+                d3.select("#d3").html("D3::" + d3.select("#msg").node().value);
                 document.getElementById("dom").innerHTML = "DOM::" + document.getElementById("msg").value;
+            }
+            function inlinenone(a){
+                if (d3.select(a).html() == 'expand') {
+                    d3.select('#demohidden').style('display', 'block');
+                    d3.select(a).html('shrink')
+                } else{
+                    d3.select('#demohidden').style('display', 'none');
+                    d3.select(a).html('expand')
+                }
+                
             }
         </script>
     </head>
     <body>
+        <p> Leading paragraph <button id="my" onclick="inlinenone(this)">expand</button></p>
+        <p style='display:none' id='demohidden'>This paragraph should be hidden.</p>
+        <p>This is a visible paragraph.</p>
+
         <p>
             <form>
                 <input type="text"  id="msg" >
