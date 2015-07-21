@@ -51,10 +51,7 @@
         <input type="text" size="5" id="replication" min="1" max="10000" value="1000">
         <label >組數</label>
         <input type="text" size="5" id="noOfPartition" min="1" max="10000" value="25">
-        <!--<input type="range" id='drag' min="1" max="10000" value="10" onmousemove="d3.select('#test').html(d3.select('#drag').node().value);">
-        <label id='test'></label> -->
-        <!--<button onclick="histo()">模擬</button>-->
-        <button id='mybutton'>模擬</button>
+        <button id='progressbar' onclick="buttonfun()"><div id='progressLabel'>模擬</div></button>
         <input type='radio' name='plottype' value='cdf' checked='true' onchange='togglecdf()'>累積相對次數分配
         <input type='radio' name='plottype' value='pdf' onchange='togglecdf()'>次數分配
     </p>
@@ -80,13 +77,13 @@
     <svg class="chart"></svg>
     </p>
 <script>
-    var values,x;
-    var arr,n,replication,size,mu,sigma,samplemu,samplesigma,left,right;
-    var xScale,sScale,xinverse,pScale;
-    function standard(x,mu,sigma){
-        return (x-mu)/sigma;
-    }
-    function relativefrequency(x){
+var values,x,index;
+var arr,n,replication,size,mu,sigma,samplemu,samplesigma,left,right;
+var xScale,sScale,xinverse,pScale,population,data,width,mar,height,maxy;
+function standard(x,mu,sigma){
+    return (x-mu)/sigma;
+}
+function relativefrequency(x){
         var c=0;
         for (var i=0;i<values.length;i++){
             if (values[i]<=x)
@@ -95,8 +92,8 @@
                 break;
         }
         return c/values.length;
-    }
-    function showdiff(x){
+}
+function showdiff(x){
       d3.select('#upperlimit').text(x.toPrecision(4));
       d3.select('#aproxprob').text(jStat.normal.cdf(standard(x,samplemu,samplesigma),0,1).toPrecision(4));
       d3.select('#frequency').text(relativefrequency(x).toPrecision(4));
@@ -107,51 +104,56 @@
         d3.select('#diff').style('color','blue');
       else
         d3.select('#diff').style('color','green');
-    }
-    function histo() {
-        n = parseInt(d3.select('#noOfPartition').node().value);
-        replication = parseInt(d3.select('#replication').node().value);
-        size = parseInt(d3.select('#samplesize').node().value);
-        // <V1> <W1>,<V2> <W2>,...
-        var pairs=d3.select('#population').node().value.split(',');
-        var population=[];
-        var psum=0;
-        for (var i=0;i<pairs.length;i++){
-            var temp=pairs[i].split(' ').filter(Boolean); // remove ""
-            if (temp.length>=2)
-               population.push({v:temp[0],p:parseFloat(temp[1])});
-            else
-               population.push({v:temp[0],p:1});
-            psum=psum+population[i].p;
-        }
-        for (var i=0;i<population.length;i++) population[i].p/=psum; // normalize
-
-        values=[];
-        for (var i=0;i<replication;i++){
+}
+function histo() {
+  function part1_1(){
+          n = parseInt(d3.select('#noOfPartition').node().value);
+          replication = parseInt(d3.select('#replication').node().value);
+          size = parseInt(d3.select('#samplesize').node().value);
+          // <V1> <W1>,<V2> <W2>,...
+          var pairs=d3.select('#population').node().value.split(',');
+          population=[];
+          var psum=0;
+          for (var i=0;i<pairs.length;i++){
+              var temp=pairs[i].split(' ').filter(Boolean); // remove ""
+              if (temp.length>=2)
+                 population.push({v:temp[0],p:parseFloat(temp[1])});
+              else
+                 population.push({v:temp[0],p:1});
+              psum=psum+population[i].p;
+          }
+          // normalize
+          for (var i=0;i<population.length;i++) population[i].p/=psum; 
+  }
+  function part1_2(){
+          values=[];
+          for (var i=0;i<replication;i++){
             values.push(d3.mean(st.sample(population,size)));
-        }
-
-        values=values.sort(function(a,b){return a-b;});
-        left=d3.min(values)-0.00001;
-        right=d3.max(values)+0.00001;
-
-        var vcs=st.valueCount(values);
-        var data=st.countFrequency(vcs,left,right,n);  //[{value:[],count[],total},...]
-
-        mu=st.mean(population);
-        sigma=st.sd(population);
-        samplemu=mu;
-        samplesigma=sigma/Math.sqrt(size);
-        d3.select('#mu').text(''+mu.toPrecision(4));
-        d3.select('#sigma').text(''+sigma.toPrecision(4));
-        d3.select('#samplemu').text(''+samplemu.toPrecision(4));
-        d3.select('#samplesigma').text(''+samplesigma.toPrecision(4));
-
-        var width = 600, height = 300;
-        var mar={left:60,top:60,right:60,bottom:40};
-        var maxy=d3.max(data, function (d) { return d.total; });
-        //var miny=d3.min(data, function (d) { return d.total; });
-
+          }
+  }
+  function part2(){
+          values=values.sort(function(a,b){return a-b;});
+          left=d3.min(values)-0.00001;
+          right=d3.max(values)+0.00001;
+  
+          var vcs=st.valueCount(values);
+          data=st.countFrequency(vcs,left,right,n);//[{value:[],count[],total}, ...]
+  }
+  function part3(){
+          mu=st.mean(population);
+          sigma=st.sd(population);
+          samplemu=mu;
+          samplesigma=sigma/Math.sqrt(size);
+          d3.select('#mu').text(''+mu.toPrecision(4));
+          d3.select('#sigma').text(''+sigma.toPrecision(4));
+          d3.select('#samplemu').text(''+samplemu.toPrecision(4));
+          d3.select('#samplesigma').text(''+samplesigma.toPrecision(4));
+  
+          width = 600; height = 300;
+          mar={left:60,top:60,right:60,bottom:40};
+          maxy=d3.max(data, function (d) { return d.total; });
+  }
+  function part4(){
         pScale = d3.scale.linear()
                     .domain([0,1])
                     .range([height-mar.bottom, mar.top]);
@@ -201,6 +203,7 @@
               d3.select('input[name="plottype"]:checked').node().value=='pdf'?'visible':'hidden')
             .style('fill','black').style('font-size','14px')
             .text("次數");
+
         // right axis
         var fScale= d3.scale.linear()
                     .domain([0,bwinsd*values.length])
@@ -272,12 +275,13 @@
         //// http://stackoverflow.com/questions/15962325/mathjax-inside-svg
         // SVG 裡面要用MathJax，必須放在foreignObject裡，但不好看
         chart.append('g').append("foreignObject")
-            .attr("x",120).attr("y",0).attr('width','300').attr('height','50')
-            .attr('id','upperlabel')
-            .html("<div xmlns='http://www.w3.org/1999/xhtml' "+
-               "style='font-family:sans-serif; font-size:16px'>"+
-               "\\(\\displaystyle{量尺：樣本平均標準差"+
-               "\\frac{\\sigma}{\\sqrt{n}}為單位}\\)</div>"); //不用displaystyle,根號的底端被切掉
+          .attr("x",120).attr("y",0).attr('width','300').attr('height','50')
+          .attr('id','upperlabel')
+          .html("<div xmlns='http://www.w3.org/1999/xhtml' "+
+            "style='font-family:sans-serif; font-size:16px'>"+
+            "\\(\\displaystyle{量尺：樣本平均標準差"+
+            "\\frac{\\sigma}{\\sqrt{n}}為單位}\\)</div>"); 
+            //不用displaystyle,根號的底端被切掉
         var outputBox = d3.select('#upperlabel').node();
         MathJax.Hub.Queue(["Typeset", MathJax.Hub, outputBox]);
         // top axis
@@ -345,29 +349,70 @@
             .attr('y2',height-mar.bottom)
             .attr('stroke','red');
         showdiff(samplemu);
-        $('#mybutton').prop('disable',false).html("模擬").css('background-color',origcolor);
+  }
+  function part(){
+        switch (index){
+          case 1:
+             part1_1();
+             progressbar.progressbar('value',20);
+             break;
+          case 2:
+             part1_2();
+             progressbar.progressbar('value',40);
+             break;
+          case 3:
+             part2();
+             progressbar.progressbar('value',50);
+             break;
+          case 4:
+             part3();
+             progressbar.progressbar('value',80);
+             break;
+          case 5:
+             part4();
+             progressbar.progressbar('value',100);
+             break;
+          default: return;
+        }
+        index++;
+        setTimeout(part,100);
+  }
+  index=1;
+  setTimeout(part,100);
+}
+function togglecdf(){
+  if (d3.select('input[name="plottype"]:checked').node().value=='cdf'){
+      d3.selectAll('.cdf').each(function(d,i){
+        d3.select(this).style('visibility','visible');
+      })
+      d3.selectAll('.pdf').each(function(d,i){
+        d3.select(this).style('visibility','hidden');
+      })
+  } else {
+      d3.selectAll('.cdf').each(function(d,i){
+        d3.select(this).style('visibility','hidden');
+      })
+      d3.selectAll('.pdf').each(function(d,i){
+        d3.select(this).style('visibility','visible');
+      })
+  }
+}
+var progressbar=$('#progressbar'),progressLabel=$('#progressLabel');
+progressbar.css('width','100');
+function buttonfun(){
+  progressbar.progressbar({
+    value:0,
+    change:function(){
+      progressLabel.text( progressbar.progressbar( "value" ) + "%" );
+    },
+    complete:function(){
+      progressLabel.text( "模擬" );
+      progressbar.progressbar('destroy');
     }
-    function togglecdf(){
-      if (d3.select('input[name="plottype"]:checked').node().value=='cdf'){
-          d3.selectAll('.cdf').each(function(d,i){
-            d3.select(this).style('visibility','visible');
-          })
-          d3.selectAll('.pdf').each(function(d,i){
-            d3.select(this).style('visibility','hidden');
-          })
-      } else {
-          d3.selectAll('.cdf').each(function(d,i){
-            d3.select(this).style('visibility','hidden');
-          })
-          d3.selectAll('.pdf').each(function(d,i){
-            d3.select(this).style('visibility','visible');
-          })
-      }
-    }
-    var origcolor=$('#mybutton').css('background-color');
-    $('#mybutton').on('mousedown',function(){$('#mybutton').html('計算中').css('background-color','red')
-      .prop('disable',true);})
-      .on('mouseup',histo);
+  });
+  progressbar.progressbar('value',5);
+  histo();
+}
 </script>        
 </body>
 </html>

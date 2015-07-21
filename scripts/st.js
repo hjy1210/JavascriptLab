@@ -83,6 +83,7 @@
         }
         for (var i = 0; i < bins; i++) {
             var s="";
+            if (res[i].total>0) s=s+res[i].total+"=";
             for (var j=0;j<res[i].member.length;j++){
                 if (res[i].count[j]>1){
                     s=s+res[i].member[j]+'('+res[i].count[j]+')';
