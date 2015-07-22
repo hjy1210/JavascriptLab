@@ -24,12 +24,13 @@
                     d3.select('#demohidden').style('display', 'none');
                     d3.select(a).html('expand')
                 }
-                init();
-                timer=setTimeout( progress, 2000 );
+                progressLabel.text( "start!" );
+                setTimeout(init,100);            
             }
+
             function init(){
                 progressbar.progressbar({
-                    value: false,
+                    value: 0,
                     change: function() {
                         progressLabel.text( progressbar.progressbar( "value" ) + "%" );
                     },
@@ -38,6 +39,7 @@
                         progressbar.progressbar( "destroy" );
                     }
                 });
+                progress();
             }
         </script>
     </head>
@@ -69,24 +71,22 @@
       progressbar = $( "#progressbar" ),
       progressLabel = $( ".progress-label" );
  
-      init();
-      function progress() {
-      var val = progressbar.progressbar( "value" ) || 0;
- 
-      progressbar.progressbar( "value", val + 2 );
- 
-      if ( val < 99 ) {
-        if (val==50) {
-          progressbar.progressbar( "value",100 );
-          return;
+
+      function progress(value) {
+        var val;
+        for (var i=0;i<100;i++){
+            //progressbar.progressbar( "value",i) ;
+            //alert('hi');
+            self.postMessage({'progress': i});
+            for (var j=0;j<value;j++){}  // 100000000
         }
-        timer=setTimeout( progress, 80 );
-        return;
+        //progressbar.progressbar( "value",100)
+        self.postMessage({'progress': 100});
       }
-      clearTimeout(timer);
-    }
+      self.onmessage = function(e) {
+            progress(e.data.value);
+      }
  
-    timer=setTimeout( progress, 2000 );
   
 
  </script>
