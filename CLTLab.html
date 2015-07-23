@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<title>中央極限定裡實驗體驗</title>
+<title>中央極限定理實驗體驗</title>
 <meta charset="UTF-8">
 <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="//ajax.aspnetcdn.com/ajax/jQuery/jquery-1.11.0.min.js"></script>
@@ -40,16 +40,38 @@
 </script>
 </head>
 <body>
+  <p>中央極限定理：有一母體，期望值為\(\mu\)，標準差為\(\sigma\)。從該母體中取出樣本數為\(n\)的樣本 \(X_1,X_2,...,X_n\)。則當\(n\)相當大時，其樣本平均\(\overline{X}\)的分配近似於期望值\(\mu\)，標準差\(\frac{\sigma}{\sqrt{n}}\)的常態分配。
+    <sub><span title="詳細" style="display:inline-block" class="ui-icon ui-icon-circle-triangle-s" id="my" onclick="inlinenone(this)"></span></sub>
+  </p>
+<div style="display:none">
+例：丟擲一公正的骰子10次，求10次的平均點數的近似分配。<br />
+解：\(\mu=\frac{1}{6}\cdot 1+\frac{1}{6}\cdot 2+\frac{1}{6}\cdot 3+\frac{1}{6}\cdot 4+\frac{1}{6}\cdot 5+\frac{1}{6}\cdot 6=3.5\)，\(\sigma^2=\frac{1}{6}\cdot (1-3.5)^2 +\) \( \frac{1}{6}\cdot (2-3.5)^2 + \frac{1}{6}\cdot (3-3.5)^2 + \frac{1}{6}\cdot (4-3.5)^2 + \frac{1}{6}\cdot (5-3.5)^2 + \frac{1}{6}\cdot (6-3.5)^2 = \frac{35}{12}\)。故丟擲10次的平均點數的分布近似於期望值3.5，標準差\(\sqrt{\frac{35}{120}}\approx 0.54\)的常態分配。<br />
+所以，10次的平均點數落在區間\([3.5-0.54,3.5+0.54]=[2.96, 4.04]\)的機率大約0.68。
+</div>
+<p>\(n\) 要多大，近似才夠準呢？<sub><span title="詳細" style="display:inline-block" class="ui-icon ui-icon-circle-triangle-s" id="my" onclick="inlinenone(this)"></span></sub></p>
+<div style="display:none">
+<p>一般來講，母體的分配對稱時，\(n\)不需要很大。<sub></p>
+</div>
+<p>自己進行實驗來體會最真實。每次實驗，從母體中取樣\(n\)個求得樣本平均。實驗\(m\)次得\(m\)次的樣本平均，將這些樣本平均畫出累積相對次數分配圖與對應的常態分配之累積機率分配函數比較。將這些樣本平均畫出相對次數分配圖與對應的常態分配之機率密度函數相比較。
+  <sub><span title="詳細" style="display:inline-block" class="ui-icon ui-icon-circle-triangle-s" id="my" onclick="inlinenone(this)"></span></sub>
+</p>
+<div  style="display:none">
+  母體元素有兩種輸入法。第一種，直接輸入以逗點分開的一串數值，這些數值代表從母體抽得的可能數值，每一數值抽到的機率皆相等。例如，要模擬公正的骰子，可輸入"1,2,3,4,5,6"(不包括兩頭的"")。第二種方法，每對資料用空白隔開，前者代表可能值，後者代表該可能值的機率，各對資料再以逗點隔開。例如，"0 0.3, 1 0.7"(不包括兩頭的"")，代表母體有兩個元素，抽到0的機率為0.3，抽到1的機率為0.7。這相當於，某議案贊成的民眾有7成，抽中贊成者代表1，抽中反對者代表0。抽樣樣本數限制為1到10000的整數。實驗次數限制為10到10000的整數。組數限制為10到1000的整數。<br>
+  圖中，下邊的橫軸以母體的原始資料之單位為單位；上邊的橫軸以樣本平均之標準差 \(\frac{\sigma}{\sqrt{n}}\)為單位，以樣本平均期望值\(\mu\)為原點。<br>
+  當比較累績相對次數分配時，左邊的縱軸代表機率。當比較相對次數分配時，右邊的縱軸代表次數，長條圖的面積和與常態分配機率密度函數下面的面積相等。綠線代表近似的常態分配。<br>
+  上限代表紅線的位置，實際頻率為樣本平均觀察值落在紅線左邊的頻率，近似機率為樣本平均的近似常態分配落在紅線左邊的機率。拖曳紅線上方的圓圈可得兩者差距的數值。
+</div>
+<div>
     <p>
         <label >母體元素</label>
         <input type="text" id="population" value="2,4,6,8,10,30" size="80"></input>
     </p>
     <p>
-        <label >抽樣樣本數</label>
+        <label >抽樣樣本數\(n\)</label>
         <input type="text" size="5" id="samplesize" min="1" max="10000" step=1 value="10">
-        <label >實驗次數</label>
+        <label >實驗次數\(m\)</label>
         <input type="text" size="5" id="replication" min="1" max="10000" value="1000">
-        <label >組數</label>
+        <label >組數(次數分配圖)</label>
         <input type="text" size="5" id="noOfPartition" min="1" max="10000" value="25">
         <button id='progressbar' onclick="buttonfun()"><div id='progressLabel'>模擬</div></button>
         <input type='radio' name='plottype' value='cdf' checked='true' onchange='togglecdf()'>累積相對次數分配
@@ -63,8 +85,8 @@
         <label>, 樣本平均的期望值\(\mu:\)</label>
         <label id="samplemu">未算</label>
         <label>, 樣本平均的標準差\(\frac{\sigma}{\sqrt{n}}:\)</label>
-        <label id="samplesigma">未算</label><br>
-        <label>上限:</label>
+        <label id="samplesigma">未算</label>
+        <label>, 上限:</label>
         <label id="upperlimit">未算</label>
         <label>, 近似機率:</label>
         <label id="aproxprob">未算</label>
@@ -76,10 +98,23 @@
     <p id="histogram">
     <svg class="chart"></svg>
     </p>
+</div>
 <script>
 var values,x,index;
 var arr,n,replication,size,mu,sigma,samplemu,samplesigma,left,right;
 var xScale,sScale,xinverse,pScale,population,data,width,mar,height,maxy;
+function inlinenone(a){
+    if ($(a).hasClass("ui-icon-circle-triangle-s")) {
+        $(a).parents("p").next().css('display', 'block');
+        $(a).removeClass("ui-icon-circle-triangle-s");
+        $(a).addClass("ui-icon-circle-triangle-n")
+    } else{
+        $(a).parents("p").next().css('display', 'none');
+        $(a).removeClass("ui-icon-circle-triangle-n");
+        $(a).addClass("ui-icon-circle-triangle-s")
+    }
+}
+
 function standard(x,mu,sigma){
     return (x-mu)/sigma;
 }
@@ -267,21 +302,21 @@ function histo() {
             .attr('transform','translate('+xScale(left)+','+(0)+')')
             .call(pAxis);
         // top label
-        //chart.append('g').append("text")
-        //    .attr("text-anchor","middle")
-        //    .attr("x",width/2).attr("y",20).attr('id','upperlabel')
-        //    .style('fill','black').style('font-size','14px')
-        //    .html("量尺：樣本平均標準差為單位");
+        chart.append('g').append("text")
+            .attr("text-anchor","middle")
+            .attr("x",width/2).attr("y",20).attr('id','upperlabel')
+            .style('fill','black').style('font-size','14px')
+            .html("量尺：樣本平均標準差為單位");
         //// http://stackoverflow.com/questions/15962325/mathjax-inside-svg
         // SVG 裡面要用MathJax，必須放在foreignObject裡，但不好看
-        chart.append('g').append("foreignObject")
-          .attr("x",120).attr("y",0).attr('width','300').attr('height','50')
-          .attr('id','upperlabel')
-          .html("<div xmlns='http://www.w3.org/1999/xhtml' "+
-            "style='font-family:sans-serif; font-size:16px'>"+
-            "\\(\\displaystyle{量尺：樣本平均標準差"+
-            "\\frac{\\sigma}{\\sqrt{n}}為單位}\\)</div>"); 
-            //不用displaystyle,根號的底端被切掉
+        //chart.append('g').append("foreignObject")
+        //  .attr("x",120).attr("y",0).attr('width','300').attr('height','60')
+        //  .attr('id','upperlabel')
+        //  .html("<div xmlns='http://www.w3.org/1999/xhtml' "+
+        //    "style='font-family:sans-serif; font-size:16px'>"+
+        //    "\\(\\displaystyle{量尺：樣本平均標準差"+
+        //    "\\frac{\\sigma}{\\sqrt{n}}為單位}\\)</div>"); 
+        //    //不用displaystyle,根號的底端被切掉
         var outputBox = d3.select('#upperlabel').node();
         MathJax.Hub.Queue(["Typeset", MathJax.Hub, outputBox]);
         // top axis
@@ -400,6 +435,21 @@ function togglecdf(){
 var progressbar=$('#progressbar'),progressLabel=$('#progressLabel');
 progressbar.css('width','100');
 function buttonfun(){
+  n = parseInt(d3.select('#noOfPartition').node().value);
+  if (!(n>=10 && n<=1000)){
+    alert('組數必須為10到1000間的整數');
+    return;
+  }
+  replication = parseInt(d3.select('#replication').node().value);
+  if (!(replication>=10 && replication<=10000)){
+    alert('m必須為10到10000間的整數');
+    return;
+  }
+  size = parseInt(d3.select('#samplesize').node().value);
+  if (!(size>=1 && size<=10000)){
+    alert('n必須為1到10000間的整數');
+    return;
+  }
   progressbar.progressbar({
     value:0,
     change:function(){

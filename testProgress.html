@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <title></title>
+    <meta charset="UTF-8">
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <link rel="stylesheet" 
+        href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" />
+
+    <script src="//ajax.aspnetcdn.com/ajax/jQuery/jquery-1.11.0.min.js"></script>
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+  </head>
+<body>
+  <p>練習jQuery-UI的progressbar，請按下面按鈕。</p>
+  <button onclick='init();' id='progressbar'><div id='progressLabel'>模擬</div></button>
+  <script>
+    var replication=100;
+    var iteration=0;
+    var progressbar=$('#progressbar'),progressLabel=$('#progressLabel');
+    progressbar.css('width','100');
+    function init(){
+      iteration=0;
+      progressbar.progressbar({
+        value:0,
+        change:function(){
+          progressLabel.text( progressbar.progressbar( "value" ) + "%" );
+        },
+        complete:function(){
+          progressLabel.text( "模擬" );
+          progressbar.progressbar('destroy');
+        }
+      });
+      progress();
+    }
+    function progress(){
+      for (var j=0;j<1000000;j++){}
+      iteration++;
+      progressbar.progressbar('value',iteration);
+      if (iteration<100) setTimeout(progress,0);
+    }
+    //iteration=0;
+    //progress();
+  </script>
+</body>
+</html>

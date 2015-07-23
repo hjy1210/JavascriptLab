@@ -17,15 +17,19 @@
                 document.getElementById("dom").innerHTML = "DOM::" + document.getElementById("msg").value;
             }
             function inlinenone(a){
-                if (d3.select(a).html() == 'expand') {
-                    d3.select('#demohidden').style('display', 'block');
-                    d3.select(a).html('shrink')
+                if ($(a).hasClass("ui-icon-circle-triangle-s")) {
+                    $(a).parents("p").next().css('display', 'block');
+                    $(a).removeClass("ui-icon-circle-triangle-s");
+                    $(a).addClass("ui-icon-circle-triangle-n")
                 } else{
-                    d3.select('#demohidden').style('display', 'none');
-                    d3.select(a).html('expand')
+                    $(a).parents("p").next().css('display', 'none');
+                    $(a).removeClass("ui-icon-circle-triangle-n");
+                    $(a).addClass("ui-icon-circle-triangle-s")
                 }
+            }
+            function process(){
                 init();
-                timer=setTimeout( progress, 2000 );
+                timer=setTimeout( progress, 1000 );
             }
             function init(){
                 progressbar.progressbar({
@@ -34,15 +38,19 @@
                         progressLabel.text( progressbar.progressbar( "value" ) + "%" );
                     },
                     complete: function() {
-                        progressLabel.text( "Complete!" );
+                        progressLabel.text( "Process!" );
                         progressbar.progressbar( "destroy" );
+                        if (timer!=null) {
+                            clearTimeout(timer);
+                            timer=null;
+                        }
                     }
                 });
             }
         </script>
     </head>
     <body>
-        <p> Leading paragraph <button id="my" onclick="inlinenone(this)">expand</button></p>
+        <p> Leading paragraph <sub><span style="display:inline-block" class="ui-icon ui-icon-circle-triangle-s" id="my" onclick="inlinenone(this)"></span></sub></p>
         <p style='display:none' id='demohidden'>This paragraph should be hidden.</p>
         <p>This is a visible paragraph.</p>
 
@@ -53,6 +61,7 @@
         </p>
         <p>
             <button onclick="getMessage()">Get Message</button>
+            <button id="progressbar" onclick="process()"><div class="progress-label" style={position:"absolute"}>Process!</div></button>
         </p>
         <p id="d3">
 
@@ -60,7 +69,6 @@
 
         <p id="dom">
         </p>
-        <div id="progressbar" style={position:"relative"}><div class="progress-label" style={position:"absolute"}>Loading...</div></div>
 
   <script>
       var timer;
@@ -76,17 +84,13 @@
       progressbar.progressbar( "value", val + 2 );
  
       if ( val < 99 ) {
-        if (val==50) {
-          progressbar.progressbar( "value",100 );
-          return;
-        }
-        timer=setTimeout( progress, 80 );
+        timer=setTimeout( progress, 20 );
         return;
       }
       clearTimeout(timer);
     }
  
-    timer=setTimeout( progress, 2000 );
+    timer=setTimeout( progress, 300 );
   
 
  </script>
