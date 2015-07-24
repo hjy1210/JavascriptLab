@@ -17,12 +17,12 @@ path {
     box-sizing: border-box;
 }
 .info {
-    width: 40%;
+    width: 30%;
     float: left;
     padding: 15px;
 }
 .map {
-    width: 60%;
+    width: 70%;
     float: left;
     padding: 15px;
 }
@@ -41,7 +41,7 @@ path:hover {
 </head>
 <body>
   <div class='info'>
-    <p>滑鼠放在地圖上可顯示資料</p>
+    <p>滑鼠放在地圖上可顯示資料。按左鍵放大該鄉鎮地圖，鬆開則還原</p>
     <p id='location'></p>
     <div id='native' style="text-align:left"></div>
   </div>
@@ -7475,43 +7475,25 @@ path:hover {
           $('#message').html(this.getAttribute("xlink:href"));
           var id=this.getAttribute("xlink:href");
           curpath=this;
-          $('#location').html($(id).text());
+          $('#location').html($(id).children("tsm\\:countyName").text()+
+            $(id).children("tsm\\:townName").text()+"<br/>面積："+
+            $(id).children("tsm\\:area").text()+"平方公里，人口："+
+            $(id).children("tsm\\:population").text()+"人");
           var ans="";
           $(id).children("tsm\\:statistics").children().each(
             function(idx,el){
                 var p=$(this)[0].tagName.split(':')[1];
                 ans=ans+p+":"+$(this).attr('count')+"<br/>";
             });
-          //if (ans.length>2) ans=ans.substring(0,ans.length-2);
           $('#native').html(ans);
-          //$('#native').html(
-          //    'puyuma:'+$(id+' tsm\\:puyuma').attr('count')+', '+
-          //    'amis:'+$(id+' tsm\\:amis').attr('count')+', '+
-          //    'bunun:'+$(id+' tsm\\:bunun').attr('count')+', '+
-          //    'han:'+$(id+' tsm\\:han').attr('count')+', '+
-          //    'others:'+$(id+' tsm\\:others').attr('count')+', '+
-          //    'paiwan:'+$(id+' tsm\\:paiwan').attr('count')+', '+
-          //    'atayal:'+$(id+' tsm\\:atayal').attr('count')+', '+
-          //    'rukai:'+$(id+' tsm\\:rukai').attr('count')
-          //    );
-        })
-        .on('click',function(){
-          var len=curpath.getTotalLength();
-          var rng={minx:curpath.getPointAtLength(0).x,
-            maxx:curpath.getPointAtLength(0).x,
-            miny:curpath.getPointAtLength(0).y,
-            maxy:curpath.getPointAtLength(0).y
-            }
-          for (var i=0;i<1000;i++){
-            var xy=curpath.getPointAtLength(i*len/1000);
-            rng.maxx=Math.max(xy.x,rng.maxx);
-            rng.minx=Math.min(xy.x,rng.minx);
-            rng.maxy=Math.max(xy.y,rng.maxy);
-            rng.miny=Math.min(xy.y,rng.miny);
-          }
-          $('#native').html($('#native').html()+'<br/>'+
-            'left='+rng.minx+",right="+rng.maxx+"; top="+rng.maxy+
-            ",bottom="+rng.miny);
+       })
+        .on('mousedown',function(){
+            $(this).attr('transform',"matrix(3,0,0,3,"+(-2*$(this).attr('centroidX'))+","+
+                (-2*$(this).attr('centroidY'))+")");
+        }).on('mouseup',function(){
+            $(this).attr('transform',"matrix(1,0,0,1,0,0)");
+        }).on('mouseleave',function(){
+            $(this).attr('transform',"matrix(1,0,0,1,0,0)");
         });
   </script>
 </body>
