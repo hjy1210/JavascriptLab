@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<title>Drag circle</title>
+<meta charset="UTF-8">
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="//cdn.jsdelivr.net/jstat/1.3.0/jstat.min.js"></script>
+<script src="//ajax.aspnetcdn.com/ajax/jQuery/jquery-1.11.0.min.js"></script>
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/flot/0.8.3/jquery.flot.min.js"></script>
+</head>
+<body>
+    <p>
+        <svg width="300" height="200">
+            <circle cx="100" cy="100" r="5" fill="red" class="draggable" />
+            <circle cx="50" cy="70" r="5" fill="red" class="draggable" />
+        </svg>
+    </p>
+    <input type="radio" name="sex" value="male" >Male
+    <br>
+    <input type="radio" name="sex" value="female">Female
+    <button onclick="getvalue()">click</button><label id="demo"></label>
+    <br>
+    <input type="checkbox" name="sex1" value="male" >Male
+    <br>
+    <input type="checkbox" name="sex1" value="female">Female
+    <br>
+    <button onclick="getvalue1()">click</button><label id="demo1"></label>
+
+    <p>Begin
+        <svg width="200" height="200">
+        </svg>
+       End
+    </p>
+    <div id="placeholder" style="width:600px;height:300px"></div>
+<script>
+    var drag = d3.behavior.drag()
+        .on("drag", function () {
+            d3.select(this).attr("cx", d3.event.x)
+                            .attr("cy", d3.event.y);
+        });
+    d3.selectAll('circle')
+      .on('click', function () {
+          if (d3.event.defaultPrevented) return;
+          console.log("clicked!");
+      })
+      .call(drag);
+
+    var x = jStat.seq(-Math.PI, Math.PI, 300);
+    var points = d3.range(300).map(function (d) { return [x[d], Math.sin(x[d])]; });
+    var points2 = d3.range(300).map(function (d) { return [x[d], Math.cos(x[d])]; });
+    //$.plot($("#placeholder"), [[[0, 0], [1, 1]]], { yaxis: { max: 1} });
+    //$.plot($("#placeholder"), [points], { yaxis: { max: 1,min:-1},label:"Sin" });
+    $.plot($("#placeholder"), [{ data: points, label: "Sin" }, { data: points2, label: "Cos"}], { yaxis: { max: 1, min: -1} });
+
+    function getvalue() {
+        //$("#demo").text("("+$("input[type='radio'][name = 'sex']:checked").val()+")");
+        var node = d3.select('input[name="sex"]:checked').node();
+        d3.select('#demo').text(node ? node.value : "()");
+    }
+    function getvalue1() {
+        //$("#demo").text("("+$("input[type='radio'][name = 'sex']:checked").val()+")");
+        var val = "@";
+        d3.selectAll('input[type="checkbox"][name="sex1"]:checked').each(function (d, i) {
+            val = val + d3.select(this).node().value + " ";
+        })
+
+        d3.select('#demo1').text(val);
+    }
+</script>
+        
+</body>
+</html>
