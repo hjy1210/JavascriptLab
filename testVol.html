@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>jQuery UI Droppable - Revert draggable position</title>
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+  <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+  <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+  <style>
+  .dragdropable{ width: 100px; height: 30px; padding: 0.5em; float: left; margin: 10px 10px 10px 0; }
+  </style>
+  <script>
+  $(function() {
+    var dragindex,dropindex;
+    function getIndex(t){
+      return (parseInt($(t).text().split('.')[0])-1);
+    }
+    var depts=$.map(["數學","物理","化學","生物","牙醫","醫學","土木","電機","機械","資工"],function(v,idx){
+       return v;
+    });
+    $.each(depts,function(idx,v){
+      $('#vols').append('<div class="ui-widget-content dragdropable">'+(idx+1)+'. '+v+'</div>');
+    });
+    $( ".dragdropable" ).draggable({ 
+      start: function() {
+        dragindex=getIndex(this);
+        //console.log('dragindex='+dragindex);
+      },
+      opacity: 0.7, 
+      helper: "clone"
+    });
+ 
+    $(".dragdropable" ).droppable({
+      activeClass: "ui-state-default",
+      hoverClass: "ui-state-hover",
+      drop: function( event, ui ) {
+        dropindex=getIndex(this);
+        //console.log('dropindex='+dropindex);
+        if (dragindex<dropindex){
+          var tmp=depts[dragindex];
+          for (var i=dragindex;i<dropindex;i++){
+            depts[i]=depts[i+1];
+          }
+          depts[dropindex]=tmp;
+        } else if (dragindex>dropindex){
+          var tmp=depts[dragindex];
+          for (var i=dragindex;i>dropindex;i--){
+            depts[i]=depts[i-1];
+          }
+          depts[dropindex]=tmp;
+        }
+        $('.dragdropable').each(function(idx,v){$(this).text((idx+1)+'.'+depts[idx]);});
+     }
+    });
+  });  
+  </script>
+</head>
+<body>
+  <p>拖曳志願以調整志願</p>
+  <div id='vols' style='display:inline-block; width:600px'><div>
+ 
+ 
+</body>
+</html>
